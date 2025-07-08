@@ -1,49 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Typing Test</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; user-select: none; }
-    #form-box, #test-box, #message-box { margin-top: 20px; display: none; }
-    textarea {
-      width: 100%;
-      height: 150px;
-      font-size: 16px;
-      resize: none;
+    input, textarea {
+      width: 100%; padding: 10px; font-size: 16px; margin-bottom: 10px;
     }
-    input {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 10px;
-      font-size: 16px;
-    }
+    #form-box, #test-box, #message-box { display: none; margin-top: 20px; }
     #question-text {
-      font-weight: bold;
-      font-size: 18px;
-      text-transform: uppercase;
-      background-color: #f7f7f7;
-      padding: 10px;
-      border: 1px solid #ccc;
-      margin-bottom: 10px;
+      font-weight: bold; font-size: 18px; text-transform: uppercase;
+      background: #f9f9f9; padding: 10px; border: 1px solid #ccc;
     }
-    #timer {
-      font-weight: bold;
-      margin-bottom: 10px;
+    #timer { font-weight: bold; margin: 10px 0; }
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 20px;
     }
-    #user-typed span.wrong {
+    th, td {
+      border: 1px solid #ccc; padding: 8px;
+      text-align: left; font-size: 16px;
+    }
+    .wrong {
       color: red;
       font-weight: bold;
+      text-decoration: underline;
+      text-decoration-color: red;
+      text-decoration-style: wavy;
     }
-    #user-typed span.correct {
-      color: black;
-    }
-    #user-typed, #final-question {
-      margin-top: 10px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      background-color: #f1f1f1;
-      font-size: 16px;
+    .right { color: black; }
+    .blocked {
+      color: red; font-weight: bold;
+      background: #fff3f3; padding: 20px; border: 2px solid red;
     }
   </style>
 </head>
@@ -51,10 +39,14 @@
 
 <h2>Typing Test</h2>
 
+<div id="blocked-message" class="blocked" style="display:none;">
+  You have already attempted this test. Try again later.
+</div>
+
 <div id="form-box">
   <p><b>Before starting, please enter your details:</b></p>
-  <input type="text" id="name" placeholder="Enter your name">
-  <input type="email" id="email" placeholder="Enter your email">
+  <input type="text" id="name" placeholder="Enter your name" />
+  <input type="email" id="email" placeholder="Enter your email" />
   <button onclick="startTest()">Start Test</button>
   <p id="form-error" style="color:red;"></p>
 </div>
@@ -62,16 +54,23 @@
 <div id="test-box">
   <p id="timer">Time Left: 01:00</p>
   <div id="question-text"></div>
-  <textarea id="answer" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea><br><br>
+  <textarea id="answer" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
   <button onclick="submitTest()">Submit Test</button>
 </div>
 
 <div id="message-box">
   <p><b>Try again next time.</b></p>
   <p>Our job is always available for you.</p>
-  <p><b>What you typed vs correct answer:</b></p>
-  <div id="final-question"></div>
-  <div id="user-typed"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Correct Word</th>
+        <th>Your Word</th>
+      </tr>
+    </thead>
+    <tbody id="result-table"></tbody>
+  </table>
 </div>
 
 <script>
@@ -82,12 +81,24 @@
     "college", "teacher", "subject", "chapter", "lesson"
   ];
 
-  let userName = "";
-  let userEmail = "";
-  let timeLeft = 60;
-  let timerInterval;
+  let userName = "", userEmail = "", timeLeft = 60, timerInterval;
+  const ipKey = "typing-test-ip";
+  const deviceKey = "typing-test-device";
+  let displayedWords = [];
 
-  document.getElementById('form-box').style.display = 'block';
+  async function checkBlock() {
+    const ip = await fetch("https://api.ipify.org?format=json").then(res => res.json()).then(data => data.ip);
+    const ipBlocked = localStorage.getItem(ipKey) === ip;
+    const deviceBlocked = localStorage.getItem(deviceKey) === "done";
+
+    if (ipBlocked || deviceBlocked) {
+      document.getElementById("blocked-message").style.display = "block";
+    } else {
+      document.getElementById("form-box").style.display = "block";
+    }
+  }
+
+  checkBlock();
 
   function startTest() {
     const name = document.getElementById("name").value.trim();
@@ -104,17 +115,17 @@
     document.getElementById("form-box").style.display = "none";
     document.getElementById("test-box").style.display = "block";
 
-    document.getElementById("question-text").innerText = words.join(" ").toUpperCase();
-
+    displayedWords = words.map(w => slightChange(w));
+    document.getElementById("question-text").innerText = displayedWords.join(" ").toUpperCase();
     startTimer();
   }
 
   function startTimer() {
     const timer = document.getElementById("timer");
     timerInterval = setInterval(() => {
-      const minutes = Math.floor(timeLeft / 60);
-      const seconds = timeLeft % 60;
-      timer.textContent = `Time Left: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      const min = Math.floor(timeLeft / 60);
+      const sec = timeLeft % 60;
+      timer.textContent = `Time Left: ${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
       timeLeft--;
       if (timeLeft < 0) {
         clearInterval(timerInterval);
@@ -123,30 +134,48 @@
     }, 1000);
   }
 
-  function submitTest() {
-    clearInterval(timerInterval);
+  function slightChange(word) {
+    if (word.length <= 3) return word;
+    const idx = Math.floor(Math.random() * word.length);
+    const letters = "abcdefghijklmnopqrstuvwxyz";
+    return Math.random() > 0.5
+      ? word.slice(0, idx) + word.slice(idx + 1)
+      : word.slice(0, idx) + letters[Math.floor(Math.random() * letters.length)] + word.slice(idx + 1);
+  }
 
+  async function submitTest() {
+    clearInterval(timerInterval);
     document.getElementById("test-box").style.display = "none";
     document.getElementById("message-box").style.display = "block";
 
-    const original = words.join(" ").toUpperCase().split(" ");
-    const userInput = document.getElementById("answer").value.trim().toUpperCase().split(/\s+/);
+    const userWords = document.getElementById("answer").value.trim().toUpperCase().split(/\s+/);
+    const table = document.getElementById("result-table");
+    table.innerHTML = "";
 
-    const output = [];
+    for (let i = 0; i < displayedWords.length; i++) {
+      const expected = displayedWords[i].toUpperCase();
+      const typed = userWords[i] || "";
+      const row = document.createElement("tr");
 
-    for (let i = 0; i < original.length; i++) {
-      const userWord = userInput[i] || "";
-      if (userWord === original[i]) {
-        output.push(`<span class="correct">${userWord}</span>`);
-      } else {
-        output.push(`<span class="wrong">${userWord}</span>`);
-      }
+      const td1 = document.createElement("td");
+      td1.textContent = expected;
+
+      const td2 = document.createElement("td");
+      td2.innerHTML = typed === expected
+        ? `<span class="right">${typed}</span>`
+        : `<span class="wrong">${typed}</span>`;
+
+      row.appendChild(td1);
+      row.appendChild(td2);
+      table.appendChild(row);
     }
 
-    document.getElementById("final-question").innerText = original.join(" ");
-    document.getElementById("user-typed").innerHTML = output.join(" ");
+    const ip = await fetch("https://api.ipify.org?format=json").then(r => r.json()).then(d => d.ip);
+    localStorage.setItem(ipKey, ip);
+    localStorage.setItem(deviceKey, "done");
   }
 </script>
 
 </body>
-</html>
+  </html>
+  
