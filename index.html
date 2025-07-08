@@ -67,9 +67,10 @@
     let userName = "", userEmail = "", timeLeft = 60, timerInterval;
 
     const fingerprint = btoa(navigator.userAgent + screen.width + screen.height + Intl.DateTimeFormat().resolvedOptions().timeZone);
-    const blocked = localStorage.getItem("attempted_zara") === "yes" || localStorage.getItem("fingerprint") === fingerprint;
+    const blockKey = "attempted_zara_blocked";
 
-    if (blocked) {
+    // Block if fingerprint or custom flag is already in localStorage
+    if (localStorage.getItem(blockKey) === "true") {
       document.getElementById("blocked-message").style.display = "block";
     } else {
       document.getElementById("form-box").style.display = "block";
@@ -135,8 +136,8 @@
         table.appendChild(row);
       }
 
-      localStorage.setItem("attempted_zara", "yes");
-      localStorage.setItem("fingerprint", fingerprint);
+      // ✅ Permanently block this user/device
+      localStorage.setItem(blockKey, "true");
     }
   </script>
 </body>
