@@ -68,16 +68,15 @@
     </table>
   </div>
 
-  <!-- ✅ Supabase + script logic -->
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+  <!-- ✅ Supabase Integration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const { createClient } = supabase;
 
-    const SUPABASE_URL = 'https://rfinedanmwgceiotwsev.supabase.co'; // replace
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmaW5lZGFubXdnY2Vpb3R3c2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5ODQ0MzIsImV4cCI6MjA2NzU2MDQzMn0.RFzfItNk4KCYUhQx8U7-LVWcZDbEMNgxoCvtzVyVXWo'; // replace
+    const SUPABASE_URL = 'https://rfinedanmwgceiotwsev.supabase.co';  // ✅ your project URL
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmaW5lZGFubXdnY2Vpb3R3c2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5ODQ0MzIsImV4cCI6MjA2NzU2MDQzMn0.RFzfItNk4KCYUhQx8U7-LVWcZDbEMNgxoCvtzVyVXWo';
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const ipKey = "typing-test-ip";
-    const deviceKey = "typing-test-device";
     const fingerprint = btoa(navigator.userAgent + screen.width + screen.height + Intl.DateTimeFormat().resolvedOptions().timeZone);
     const targetWord = "language";
     const replacementWord = "langage";
@@ -128,7 +127,7 @@
       document.getElementById("question-text").innerText = shownWords.join(" ").toUpperCase();
 
       startTimer();
-    }
+    };
 
     function startTimer() {
       const timer = document.getElementById("timer");
@@ -181,7 +180,7 @@
       await supabase.from("attempts").insert([
         { name: userName, email: userEmail, ip: ip, fingerprint: fingerprint }
       ]);
-    }
+    };
   </script>
 </body>
 </html>
