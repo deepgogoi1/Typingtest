@@ -4,14 +4,33 @@
   <meta charset="UTF-8">
   <title>Typing Test with Name & Email</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    #form-box, #question-box, #typing-box, #result-box { margin-top: 20px; display: none; }
-    textarea { width: 100%; height: 150px; }
-    #form-box input { margin: 5px 0; width: 100%; padding: 8px; font-size: 16px; }
+    body { font-family: Arial, sans-serif; padding: 20px; user-select: none; }
+    #form-box, #test-box, #result-box { margin-top: 20px; display: none; }
+    textarea {
+      width: 100%;
+      height: 150px;
+      font-size: 16px;
+      resize: none;
+    }
+    #form-box input {
+      margin: 5px 0;
+      width: 100%;
+      padding: 8px;
+      font-size: 16px;
+    }
+    #question-text {
+      font-weight: bold;
+      font-size: 18px;
+      text-transform: uppercase;
+      background-color: #f7f7f7;
+      padding: 10px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
     #alertBox { color: red; font-weight: bold; }
   </style>
 </head>
-<body>
+<body oncontextmenu="return false" oncopy="return false" oncut="return false" onpaste="return false">
 
 <h2>Typing Test</h2>
 
@@ -23,15 +42,12 @@
   <p id="form-error" style="color:red;"></p>
 </div>
 
-<div id="question-box">
+<div id="test-box">
   <p><b>Type the following 20 words:</b></p>
-  <p id="question-text"></p>
-  <button onclick="startTypingTest()">Start Typing</button>
-</div>
+  <div id="question-text"></div>
 
-<div id="typing-box">
-  <p><b>Time Left:</b> <span id="timer">60:00</span></p>
-  <textarea id="answer"></textarea><br><br>
+  <p><b>Time Left:</b> <span id="timer">01:00</span></p>
+  <textarea id="answer" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea><br><br>
   <button onclick="submitTest()">Submit Test</button>
 </div>
 
@@ -57,7 +73,7 @@
 
   let userName = "";
   let userEmail = "";
-  let timeLeft = 60 * 60; // 60 minutes
+  let timeLeft = 60; // 60 seconds
   let timerInterval;
 
   document.getElementById('form-box').style.display = 'block';
@@ -75,13 +91,10 @@
     userEmail = email;
 
     document.getElementById("form-box").style.display = "none";
-    document.getElementById("question-box").style.display = "block";
-    document.getElementById("question-text").innerText = words.join(" ");
-  }
+    document.getElementById("test-box").style.display = "block";
 
-  function startTypingTest() {
-    document.getElementById("question-box").style.display = "none";
-    document.getElementById("typing-box").style.display = "block";
+    document.getElementById("question-text").innerText = words.join(" ").toUpperCase();
+
     startTimer();
   }
 
@@ -103,28 +116,27 @@
     if (word.length <= 3) return word;
     const idx = Math.floor(Math.random() * word.length);
     if (Math.random() > 0.5) {
-      return word.slice(0, idx) + word.slice(idx + 1);
+      return word.slice(0, idx) + word.slice(idx + 1); // remove one letter
     } else {
       const letters = "abcdefghijklmnopqrstuvwxyz";
       const newChar = letters[Math.floor(Math.random() * letters.length)];
-      return word.slice(0, idx) + newChar + word.slice(idx + 1);
+      return word.slice(0, idx) + newChar + word.slice(idx + 1); // replace one letter
     }
   }
 
   function submitTest() {
     clearInterval(timerInterval);
-    document.getElementById("typing-box").style.display = "none";
+    document.getElementById("test-box").style.display = "none";
     document.getElementById("result-box").style.display = "block";
 
     document.getElementById("submitted-name").innerText = userName;
     document.getElementById("submitted-email").innerText = userEmail;
 
-    document.getElementById("originalWords").innerText = words.join(" ");
+    document.getElementById("originalWords").innerText = words.join(" ").toUpperCase();
     const modified = words.map(slightChange);
-    document.getElementById("modifiedWords").innerText = modified.join(" ");
+    document.getElementById("modifiedWords").innerText = modified.join(" ").toUpperCase();
   }
 </script>
 
 </body>
-  </html>
-  
+</html>
