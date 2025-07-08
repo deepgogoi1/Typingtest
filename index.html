@@ -1,152 +1,61 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Typing Test Job</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; user-select: none; }
-    input, textarea {
-      width: 100%; padding: 10px; font-size: 16px; margin-bottom: 10px;
-    }
-    #form-box, #test-box, #message-box { display: none; margin-top: 20px; }
-    #question-text {
-      font-weight: bold; font-size: 18px; text-transform: uppercase;
-      background: #f9f9f9; padding: 10px; border: 1px solid #ccc;
-    }
-    #timer { font-weight: bold; margin: 10px 0; }
-    table {
-      width: 100%; border-collapse: collapse; margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid #ccc; padding: 8px;
-      text-align: left; font-size: 16px;
-    }
-    .wrong {
-      color: red;
-      font-weight: bold;
-      text-decoration: underline;
-      text-decoration-color: red;
-      text-decoration-style: wavy;
-    }
-    .right { color: black; }
-    .blocked {
-      color: red; font-weight: bold;
-      background: #fff3f3; padding: 20px; border: 2px solid red;
-    }
-  </style>
-</head>
-<body oncontextmenu="return false" oncopy="return false" oncut="return false" onpaste="return false">
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-<h2>Typing Test</h2>
-
-<div id="blocked-message" class="blocked" style="display:none;">
-  You have already attempted this test or are not allowed to take it. Try again later.
-</div>
-
-<div id="form-box">
-  <p><b>Before starting, please enter your details:</b></p>
-  <input type="text" id="name" placeholder="Enter your name" />
-  <input type="email" id="email" placeholder="Enter your email" />
-  <button onclick="startTest()">Start Test</button>
-  <p id="form-error" style="color:red;"></p>
-</div>
-
-<div id="test-box">
-  <p id="timer">Time Left: 01:00</p>
-  <div id="question-text"></div>
-  <textarea id="answer" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
-  <button onclick="submitTest()">Submit Test</button>
-</div>
-
-<div id="message-box">
-  <p><b>Try again next time.</b></p>
-  <p>Our job is always available for you.</p>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Modified Word</th>
-        <th>Your Word</th>
-      </tr>
-    </thead>
-    <tbody id="result-table"></tbody>
-  </table>
-</div>
-
-<script>
-  const words = [
-    "education", "banana", "computer", "internet", "keyboard",
-    "monitor", "science", "biology", "history", "language",
-    "software", "python", "javascript", "exam", "student",
-    "college", "teacher", "subject", "chapter", "lesson"
-  ];
-
-  const targetWord = "language";
-  const replacementWord = "langage";
+  const SUPABASE_URL = 'https://rfinedanmwgceiotwsev.supabase.co';       // 🔁 replace with yours
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmaW5lZGFubXdnY2Vpb3R3c2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5ODQ0MzIsImV4cCI6MjA2NzU2MDQzMn0.RFzfItNk4KCYUhQx8U7-LVWcZDbEMNgxoCvtzVyVXWo';                   // 🔁 replace with yours
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const ipKey = "typing-test-ip";
   const deviceKey = "typing-test-device";
-  const userHashKey = "typing-test-hash";
+  const fingerprintKey = "typing-test-fingerprint";
 
-  let shownWords = [];
-  let timeLeft = 60;
-  let timerInterval;
+  const targetWord = "language";
+  const replacementWord = "langage";
+  const words = [ "education", "banana", "computer", "internet", "keyboard", "monitor", "science", "biology", "history", "language", "software", "python", "javascript", "exam", "student", "college", "teacher", "subject", "chapter", "lesson" ];
+  let shownWords = [], finalWords = [];
+  let userName = "", userEmail = "", timeLeft = 60, timerInterval;
 
-  // Generate fingerprint hash
-  async function generateDeviceHash() {
-    const info = navigator.userAgent + screen.width + screen.height + screen.colorDepth;
-    const buffer = new TextEncoder().encode(info);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-  }
+  document.addEventListener("DOMContentLoaded", async () => {
+    const ip = await fetch("https://api.ipify.org?format=json").then(res => res.json()).then(data => data.ip);
+    const fingerprint = btoa(navigator.userAgent + screen.width + screen.height + Intl.DateTimeFormat().resolvedOptions().timeZone);
 
-  async function checkBlock() {
-    const ip = await fetch("https://api.ipify.org?format=json")
-      .then(res => res.json()).then(data => data.ip);
-    const hash = await generateDeviceHash();
+    // 🔒 Check if blocked
+    const { data } = await supabase
+      .from("attempts")
+      .select("*")
+      .or(`name.eq.ZARA,ip.eq.${ip},fingerprint.eq.${fingerprint}`);
 
-    const alreadyUsed = (
-      localStorage.getItem(ipKey) === ip ||
-      localStorage.getItem(deviceKey) === "done" ||
-      localStorage.getItem(userHashKey) === hash
-    );
-
-    if (alreadyUsed) {
+    if (data.length > 0) {
       document.getElementById("blocked-message").style.display = "block";
     } else {
       document.getElementById("form-box").style.display = "block";
     }
-  }
-
-  window.addEventListener("DOMContentLoaded", () => {
-    checkBlock().catch(err => {
-      console.error("Block check error:", err);
-      document.getElementById("form-box").style.display = "block";
-    });
   });
 
-  function startTest() {
+  window.startTest = async function () {
     const name = document.getElementById("name").value.trim();
     const email = document.getElementById("email").value.trim();
-    const errorBox = document.getElementById("form-error");
 
     if (!name || !email) {
-      errorBox.innerText = "Please fill out both name and email.";
+      document.getElementById("form-error").innerText = "Please fill out both name and email.";
       return;
     }
 
     if (name.toLowerCase() !== "zara") {
-      errorBox.innerText = "Only authorized user ZARA is allowed.";
+      document.getElementById("form-error").innerText = "Only ZARA is allowed.";
       return;
     }
 
+    userName = name;
+    userEmail = email;
+    shownWords = [...words];
+
     document.getElementById("form-box").style.display = "none";
     document.getElementById("test-box").style.display = "block";
-
-    shownWords = [...words];
     document.getElementById("question-text").innerText = shownWords.join(" ").toUpperCase();
+
     startTimer();
-  }
+  };
 
   function startTimer() {
     const timer = document.getElementById("timer");
@@ -166,12 +75,12 @@
     return word === targetWord ? replacementWord : word;
   }
 
-  async function submitTest() {
+  window.submitTest = async function () {
     clearInterval(timerInterval);
     document.getElementById("test-box").style.display = "none";
     document.getElementById("message-box").style.display = "block";
 
-    const finalWords = shownWords.map(w => slightChange(w));
+    finalWords = shownWords.map(w => slightChange(w));
     const userWords = document.getElementById("answer").value.trim().toUpperCase().split(/\s+/);
     const table = document.getElementById("result-table");
     table.innerHTML = "";
@@ -194,14 +103,16 @@
       table.appendChild(row);
     }
 
-    // Save IP, device fingerprint
     const ip = await fetch("https://api.ipify.org?format=json").then(r => r.json()).then(d => d.ip);
-    const hash = await generateDeviceHash();
-    localStorage.setItem(ipKey, ip);
-    localStorage.setItem(deviceKey, "done");
-    localStorage.setItem(userHashKey, hash);
-  }
-</script>
+    const fingerprint = btoa(navigator.userAgent + screen.width + screen.height + Intl.DateTimeFormat().resolvedOptions().timeZone);
 
-</body>
-</html>
+    await supabase.from("attempts").insert([
+      {
+        name: userName,
+        email: userEmail,
+        ip: ip,
+        fingerprint: fingerprint,
+      }
+    ]);
+  };
+</script>
