@@ -1,9 +1,8 @@
-<script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-  const SUPABASE_URL = 'https://rfinedanmwgceiotwsev.supabase.co';       // 🔁 replace with yours
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmaW5lZGFubXdnY2Vpb3R3c2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5ODQ0MzIsImV4cCI6MjA2NzU2MDQzMn0.RFzfItNk4KCYUhQx8U7-LVWcZDbEMNgxoCvtzVyVXWo';                   // 🔁 replace with yours
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script>
+  const SUPABASE_URL = 'https://rfinedanmwgceiotwsev.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // use full key
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const ipKey = "typing-test-ip";
   const deviceKey = "typing-test-device";
@@ -12,6 +11,7 @@
   const targetWord = "language";
   const replacementWord = "langage";
   const words = [ "education", "banana", "computer", "internet", "keyboard", "monitor", "science", "biology", "history", "language", "software", "python", "javascript", "exam", "student", "college", "teacher", "subject", "chapter", "lesson" ];
+
   let shownWords = [], finalWords = [];
   let userName = "", userEmail = "", timeLeft = 60, timerInterval;
 
@@ -19,7 +19,6 @@
     const ip = await fetch("https://api.ipify.org?format=json").then(res => res.json()).then(data => data.ip);
     const fingerprint = btoa(navigator.userAgent + screen.width + screen.height + Intl.DateTimeFormat().resolvedOptions().timeZone);
 
-    // 🔒 Check if blocked
     const { data } = await supabase
       .from("attempts")
       .select("*")
@@ -32,7 +31,7 @@
     }
   });
 
-  window.startTest = async function () {
+  async function startTest() {
     const name = document.getElementById("name").value.trim();
     const email = document.getElementById("email").value.trim();
 
@@ -53,9 +52,8 @@
     document.getElementById("form-box").style.display = "none";
     document.getElementById("test-box").style.display = "block";
     document.getElementById("question-text").innerText = shownWords.join(" ").toUpperCase();
-
     startTimer();
-  };
+  }
 
   function startTimer() {
     const timer = document.getElementById("timer");
@@ -75,7 +73,7 @@
     return word === targetWord ? replacementWord : word;
   }
 
-  window.submitTest = async function () {
+  async function submitTest() {
     clearInterval(timerInterval);
     document.getElementById("test-box").style.display = "none";
     document.getElementById("message-box").style.display = "block";
@@ -114,5 +112,8 @@
         fingerprint: fingerprint,
       }
     ]);
-  };
+  }
+
+  window.startTest = startTest;
+  window.submitTest = submitTest;
 </script>
