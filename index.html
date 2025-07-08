@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Typing Test job</title>
+  <title>Typing Test Job</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; user-select: none; }
     input, textarea {
@@ -40,7 +40,7 @@
 <h2>Typing Test</h2>
 
 <div id="blocked-message" class="blocked" style="display:none;">
-  You have already attempted this test. Try again later.
+  You have already attempted this test or are not allowed to take it. Try again later.
 </div>
 
 <div id="form-box">
@@ -81,40 +81,64 @@
     "college", "teacher", "subject", "chapter", "lesson"
   ];
 
-  let userName = "", userEmail = "", timeLeft = 60, timerInterval;
+  const targetWord = "language";
+  const replacementWord = "langage";
+
   const ipKey = "typing-test-ip";
   const deviceKey = "typing-test-device";
+  const userHashKey = "typing-test-hash";
+
   let shownWords = [];
-  let finalWords = [];
-  const targetWord = "language"; // ✅ Only this word will be changed
-  const replacementWord = "langage"; // ✅ Modified version shown in results
+  let timeLeft = 60;
+  let timerInterval;
+
+  // Generate fingerprint hash
+  async function generateDeviceHash() {
+    const info = navigator.userAgent + screen.width + screen.height + screen.colorDepth;
+    const buffer = new TextEncoder().encode(info);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
 
   async function checkBlock() {
     const ip = await fetch("https://api.ipify.org?format=json")
       .then(res => res.json()).then(data => data.ip);
-    const ipBlocked = localStorage.getItem(ipKey) === ip;
-    const deviceBlocked = localStorage.getItem(deviceKey) === "done";
+    const hash = await generateDeviceHash();
 
-    if (ipBlocked || deviceBlocked) {
+    const alreadyUsed = (
+      localStorage.getItem(ipKey) === ip ||
+      localStorage.getItem(deviceKey) === "done" ||
+      localStorage.getItem(userHashKey) === hash
+    );
+
+    if (alreadyUsed) {
       document.getElementById("blocked-message").style.display = "block";
     } else {
       document.getElementById("form-box").style.display = "block";
     }
   }
 
-  checkBlock();
+  window.addEventListener("DOMContentLoaded", () => {
+    checkBlock().catch(err => {
+      console.error("Block check error:", err);
+      document.getElementById("form-box").style.display = "block";
+    });
+  });
 
   function startTest() {
     const name = document.getElementById("name").value.trim();
     const email = document.getElementById("email").value.trim();
+    const errorBox = document.getElementById("form-error");
 
     if (!name || !email) {
-      document.getElementById("form-error").innerText = "Please fill out both name and email.";
+      errorBox.innerText = "Please fill out both name and email.";
       return;
     }
 
-    userName = name;
-    userEmail = email;
+    if (name.toLowerCase() !== "zara") {
+      errorBox.innerText = "Only authorized user ZARA is allowed.";
+      return;
+    }
 
     document.getElementById("form-box").style.display = "none";
     document.getElementById("test-box").style.display = "block";
@@ -147,7 +171,7 @@
     document.getElementById("test-box").style.display = "none";
     document.getElementById("message-box").style.display = "block";
 
-    finalWords = shownWords.map(w => slightChange(w));
+    const finalWords = shownWords.map(w => slightChange(w));
     const userWords = document.getElementById("answer").value.trim().toUpperCase().split(/\s+/);
     const table = document.getElementById("result-table");
     table.innerHTML = "";
@@ -170,9 +194,12 @@
       table.appendChild(row);
     }
 
+    // Save IP, device fingerprint
     const ip = await fetch("https://api.ipify.org?format=json").then(r => r.json()).then(d => d.ip);
+    const hash = await generateDeviceHash();
     localStorage.setItem(ipKey, ip);
     localStorage.setItem(deviceKey, "done");
+    localStorage.setItem(userHashKey, hash);
   }
 </script>
 
