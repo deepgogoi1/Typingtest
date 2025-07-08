@@ -2,33 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Typing Test with Eye Monitoring</title>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+  <title>Typing Test with Name & Email</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
-    video { display: none; position: absolute; top: 10px; right: 10px; width: 300px; }
-    #question-box, #typing-box, #result-box { display: none; margin-top: 20px; }
+    #form-box, #question-box, #typing-box, #result-box { margin-top: 20px; display: none; }
     textarea { width: 100%; height: 150px; }
+    #form-box input { margin: 5px 0; width: 100%; padding: 8px; font-size: 16px; }
     #alertBox { color: red; font-weight: bold; }
   </style>
 </head>
 <body>
 
-<h2>Typing Test with Eye Monitoring</h2>
+<h2>Typing Test</h2>
 
-<div id="permission-box">
-  <p>This test requires permission to monitor your eyes for fairness.</p>
-  <button onclick="startCamera()">✅ Allow Test</button>
-  <p id="permission-status" style="color:red;"></p>
+<div id="form-box">
+  <p><b>Before starting, please enter your details:</b></p>
+  <input type="text" id="name" placeholder="Enter your name"><br>
+  <input type="email" id="email" placeholder="Enter your email"><br>
+  <button onclick="startTest()">Start Test</button>
+  <p id="form-error" style="color:red;"></p>
 </div>
-
-<video id="video" autoplay muted></video>
 
 <div id="question-box">
   <p><b>Type the following 20 words:</b></p>
   <p id="question-text"></p>
-  <button onclick="startTypingTest()">Start Typing Test</button>
+  <button onclick="startTypingTest()">Start Typing</button>
 </div>
 
 <div id="typing-box">
@@ -41,6 +39,8 @@
 
 <div id="result-box">
   <h3>Test Submitted</h3>
+  <p><b>Name:</b> <span id="submitted-name"></span></p>
+  <p><b>Email:</b> <span id="submitted-email"></span></p>
   <p><b>Original Words:</b></p>
   <p id="originalWords"></p>
   <p><b>Modified Words:</b></p>
@@ -55,64 +55,33 @@
     "college", "teacher", "subject", "chapter", "lesson"
   ];
 
-  let timerInterval;
+  let userName = "";
+  let userEmail = "";
   let timeLeft = 60 * 60; // 60 minutes
-  let lookingAwayCount = 0;
+  let timerInterval;
 
-  const videoElement = document.getElementById('video');
-  const alertBox = document.getElementById('alertBox');
+  document.getElementById('form-box').style.display = 'block';
 
-  function startCamera() {
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
-        videoElement.srcObject = stream;
-        videoElement.style.display = 'block';
-        document.getElementById('permission-box').style.display = 'none';
-        document.getElementById('question-box').style.display = 'block';
-        setupFaceDetection(videoElement);
-      })
-      .catch(err => {
-        document.getElementById('permission-status').innerText = "Camera permission denied. You cannot take the test.";
-      });
-  }
+  function startTest() {
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
 
-  function setupFaceDetection(video) {
-    const faceMesh = new FaceMesh.FaceMesh({
-      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-    });
+    if (!name || !email) {
+      document.getElementById("form-error").innerText = "Please fill out both name and email.";
+      return;
+    }
 
-    faceMesh.setOptions({
-      maxNumFaces: 1,
-      refineLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
+    userName = name;
+    userEmail = email;
 
-    faceMesh.onResults(results => {
-      if (results.multiFaceLandmarks.length === 0) {
-        lookingAwayCount++;
-        if (lookingAwayCount % 50 === 0) {
-          alertBox.innerText = `⚠️ Warning: Please keep your eyes on the screen. (${lookingAwayCount} misses)`;
-        }
-      } else {
-        alertBox.innerText = '';
-      }
-    });
-
-    const camera = new Camera(video, {
-      onFrame: async () => {
-        await faceMesh.send({ image: video });
-      },
-      width: 640,
-      height: 480
-    });
-    camera.start();
+    document.getElementById("form-box").style.display = "none";
+    document.getElementById("question-box").style.display = "block";
+    document.getElementById("question-text").innerText = words.join(" ");
   }
 
   function startTypingTest() {
-    document.getElementById('typing-box').style.display = 'block';
-    document.getElementById('question-box').style.display = 'none';
-    document.getElementById('question-text').innerText = words.join(" ");
+    document.getElementById("question-box").style.display = "none";
+    document.getElementById("typing-box").style.display = "block";
     startTimer();
   }
 
@@ -134,26 +103,28 @@
     if (word.length <= 3) return word;
     const idx = Math.floor(Math.random() * word.length);
     if (Math.random() > 0.5) {
-      return word.slice(0, idx) + word.slice(idx + 1); // remove
+      return word.slice(0, idx) + word.slice(idx + 1);
     } else {
       const letters = "abcdefghijklmnopqrstuvwxyz";
       const newChar = letters[Math.floor(Math.random() * letters.length)];
-      return word.slice(0, idx) + newChar + word.slice(idx + 1); // replace
+      return word.slice(0, idx) + newChar + word.slice(idx + 1);
     }
   }
 
   function submitTest() {
     clearInterval(timerInterval);
-    document.getElementById('typing-box').style.display = 'none';
-    document.getElementById('result-box').style.display = 'block';
+    document.getElementById("typing-box").style.display = "none";
+    document.getElementById("result-box").style.display = "block";
+
+    document.getElementById("submitted-name").innerText = userName;
+    document.getElementById("submitted-email").innerText = userEmail;
 
     document.getElementById("originalWords").innerText = words.join(" ");
     const modified = words.map(slightChange);
     document.getElementById("modifiedWords").innerText = modified.join(" ");
-
-    alertBox.innerText = '';
   }
 </script>
 
 </body>
-</html>
+  </html>
+  
