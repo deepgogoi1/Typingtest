@@ -1,16 +1,93 @@
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-<script>
-  const SUPABASE_URL = 'https://rfinedanmwgceiotwsev.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // use full key
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Typing Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; user-select: none; }
+    input, textarea {
+      width: 100%; padding: 10px; font-size: 16px; margin-bottom: 10px;
+    }
+    #form-box, #test-box, #message-box { display: none; margin-top: 20px; }
+    #question-text {
+      font-weight: bold; font-size: 18px; text-transform: uppercase;
+      background: #f9f9f9; padding: 10px; border: 1px solid #ccc;
+    }
+    #timer { font-weight: bold; margin: 10px 0; }
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc; padding: 8px;
+      text-align: left; font-size: 16px;
+    }
+    .wrong {
+      color: red; font-weight: bold;
+      text-decoration: underline; text-decoration-color: red;
+      text-decoration-style: wavy;
+    }
+    .right { color: black; }
+    .blocked {
+      color: red; font-weight: bold;
+      background: #fff3f3; padding: 20px; border: 2px solid red;
+    }
+  </style>
+</head>
+<body oncontextmenu="return false" oncopy="return false" oncut="return false" onpaste="return false">
 
-  const ipKey = "typing-test-ip";
-  const deviceKey = "typing-test-device";
-  const fingerprintKey = "typing-test-fingerprint";
+<h2>Typing Test</h2>
+
+<div id="blocked-message" class="blocked" style="display:none;">
+  You have already attempted this test. Try again later.
+</div>
+
+<div id="form-box">
+  <p><b>Before starting, please enter your details:</b></p>
+  <input type="text" id="name" placeholder="Enter your name" />
+  <input type="email" id="email" placeholder="Enter your email" />
+  <button onclick="startTest()">Start Test</button>
+  <p id="form-error" style="color:red;"></p>
+</div>
+
+<div id="test-box">
+  <p id="timer">Time Left: 01:00</p>
+  <div id="question-text"></div>
+  <textarea id="answer" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+  <button onclick="submitTest()">Submit Test</button>
+</div>
+
+<div id="message-box">
+  <p><b>Try again next time.</b></p>
+  <p>Our job is always available for you.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Modified Word</th>
+        <th>Your Word</th>
+      </tr>
+    </thead>
+    <tbody id="result-table"></tbody>
+  </table>
+</div>
+
+<!-- ✅ Working with Render as ES module -->
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+  const supabase = createClient(
+    'https://rfinedanmwgceiotwsev.supabase.co',
+    'YOUR_SUPABASE_PUBLIC_ANON_KEY_HERE'
+  );
 
   const targetWord = "language";
   const replacementWord = "langage";
-  const words = [ "education", "banana", "computer", "internet", "keyboard", "monitor", "science", "biology", "history", "language", "software", "python", "javascript", "exam", "student", "college", "teacher", "subject", "chapter", "lesson" ];
+  const words = [
+    "education", "banana", "computer", "internet", "keyboard",
+    "monitor", "science", "biology", "history", "language",
+    "software", "python", "javascript", "exam", "student",
+    "college", "teacher", "subject", "chapter", "lesson"
+  ];
 
   let shownWords = [], finalWords = [];
   let userName = "", userEmail = "", timeLeft = 60, timerInterval;
@@ -31,7 +108,7 @@
     }
   });
 
-  async function startTest() {
+  window.startTest = async function () {
     const name = document.getElementById("name").value.trim();
     const email = document.getElementById("email").value.trim();
 
@@ -52,6 +129,7 @@
     document.getElementById("form-box").style.display = "none";
     document.getElementById("test-box").style.display = "block";
     document.getElementById("question-text").innerText = shownWords.join(" ").toUpperCase();
+
     startTimer();
   }
 
@@ -73,7 +151,7 @@
     return word === targetWord ? replacementWord : word;
   }
 
-  async function submitTest() {
+  window.submitTest = async function () {
     clearInterval(timerInterval);
     document.getElementById("test-box").style.display = "none";
     document.getElementById("message-box").style.display = "block";
@@ -105,15 +183,10 @@
     const fingerprint = btoa(navigator.userAgent + screen.width + screen.height + Intl.DateTimeFormat().resolvedOptions().timeZone);
 
     await supabase.from("attempts").insert([
-      {
-        name: userName,
-        email: userEmail,
-        ip: ip,
-        fingerprint: fingerprint,
-      }
+      { name: userName, email: userEmail, ip: ip, fingerprint: fingerprint }
     ]);
   }
-
-  window.startTest = startTest;
-  window.submitTest = submitTest;
 </script>
+
+</body>
+</html>
