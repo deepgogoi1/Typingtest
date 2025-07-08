@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Typing Test</title>
+  <title>Typing Test job</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; user-select: none; }
     input, textarea {
@@ -65,7 +65,7 @@
   <table>
     <thead>
       <tr>
-        <th>Question Word (now changed)</th>
+        <th>Modified Word</th>
         <th>Your Word</th>
       </tr>
     </thead>
@@ -84,11 +84,14 @@
   let userName = "", userEmail = "", timeLeft = 60, timerInterval;
   const ipKey = "typing-test-ip";
   const deviceKey = "typing-test-device";
-  let shownWords = []; // correct words shown at start
-  let finalWords = []; // modified words used for judging
+  let shownWords = [];
+  let finalWords = [];
+  const targetWord = "language"; // ✅ Only this word will be changed
+  const replacementWord = "langage"; // ✅ Modified version shown in results
 
   async function checkBlock() {
-    const ip = await fetch("https://api.ipify.org?format=json").then(res => res.json()).then(data => data.ip);
+    const ip = await fetch("https://api.ipify.org?format=json")
+      .then(res => res.json()).then(data => data.ip);
     const ipBlocked = localStorage.getItem(ipKey) === ip;
     const deviceBlocked = localStorage.getItem(deviceKey) === "done";
 
@@ -116,7 +119,7 @@
     document.getElementById("form-box").style.display = "none";
     document.getElementById("test-box").style.display = "block";
 
-    shownWords = [...words]; // store correct original
+    shownWords = [...words];
     document.getElementById("question-text").innerText = shownWords.join(" ").toUpperCase();
     startTimer();
   }
@@ -136,12 +139,7 @@
   }
 
   function slightChange(word) {
-    if (word.length <= 3) return word;
-    const idx = Math.floor(Math.random() * word.length);
-    const letters = "abcdefghijklmnopqrstuvwxyz";
-    return Math.random() > 0.5
-      ? word.slice(0, idx) + word.slice(idx + 1)
-      : word.slice(0, idx) + letters[Math.floor(Math.random() * letters.length)] + word.slice(idx + 1);
+    return word === targetWord ? replacementWord : word;
   }
 
   async function submitTest() {
@@ -149,9 +147,7 @@
     document.getElementById("test-box").style.display = "none";
     document.getElementById("message-box").style.display = "block";
 
-    // Modify words *after* user typed them
-    finalWords = shownWords.map(slightChange);
-
+    finalWords = shownWords.map(w => slightChange(w));
     const userWords = document.getElementById("answer").value.trim().toUpperCase().split(/\s+/);
     const table = document.getElementById("result-table");
     table.innerHTML = "";
