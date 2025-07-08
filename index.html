@@ -14,22 +14,11 @@
       background: #f9f9f9; padding: 10px; border: 1px solid #ccc;
     }
     #timer { font-weight: bold; margin: 10px 0; }
-    table {
-      width: 100%; border-collapse: collapse; margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 16px;
-    }
-    .wrong {
-      color: red; font-weight: bold;
-      text-decoration: underline; text-decoration-color: red;
-      text-decoration-style: wavy;
-    }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; font-size: 16px; }
+    .wrong { color: red; font-weight: bold; text-decoration: underline wavy red; }
     .right { color: black; }
-    .blocked {
-      color: red; font-weight: bold;
-      background: #fff3f3; padding: 20px; border: 2px solid red;
-    }
+    .blocked { color: red; font-weight: bold; background: #fff3f3; padding: 20px; border: 2px solid red; }
   </style>
 </head>
 <body oncontextmenu="return false" oncopy="return false" oncut="return false" onpaste="return false">
@@ -58,29 +47,12 @@
     <p><b>Try again next time.</b></p>
     <p>Our job is always available for you.</p>
     <table>
-      <thead>
-        <tr>
-          <th>Modified Word</th>
-          <th>Your Word</th>
-        </tr>
-      </thead>
+      <thead><tr><th>Modified Word</th><th>Your Word</th></tr></thead>
       <tbody id="result-table"></tbody>
     </table>
   </div>
 
-  <!-- ✅ Supabase SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/supabase.min.js"></script>
   <script>
-    const { createClient } = supabase;
-    const SUPABASE_URL = 'https://rfinedanmwgceiotwsev.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmaW5lZGFubXdnY2Vpb3R3c2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5ODQ0MzIsImV4cCI6MjA2NzU2MDQzMn0.RFzfItNk4KCYUhQx8U7-LVWcZDbEMNgxoCvtzVyVXWo'; // Replace with your actual anon key
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    const ipKey = "typing-test-ip";
-    const fingerprint = btoa(navigator.userAgent + screen.width + screen.height + Intl.DateTimeFormat().resolvedOptions().timeZone);
-
-    const targetWord = "language";
-    const replacementWord = "langage";
     const words = [
       "education", "banana", "computer", "internet", "keyboard",
       "monitor", "science", "biology", "history", "language",
@@ -88,22 +60,41 @@
       "college", "teacher", "subject", "chapter", "lesson"
     ];
 
-    let shownWords = [], finalWords = [];
+    const targetWord = "language";
+    const replacementWord = "langage";
+    let shownWords = [...words];
+    let finalWords = words.map(w => w === targetWord ? replacementWord : w);
     let userName = "", userEmail = "", timeLeft = 60, timerInterval;
 
-    document.addEventListener("DOMContentLoaded", async () => {
-      const ip = await fetch("https://api.ipify.org?format=json").then(res => res.json()).then(d => d.ip);
-      const { data } = await supabase
-        .from("attempts")
-        .select("*")
-        .or(`name.eq.ZARA,ip.eq.${ip},fingerprint.eq.${fingerprint}`);
+    const fingerprint = btoa(navigator.userAgent + screen.width + screen.height + Intl.DateTimeFormat().resolvedOptions().timeZone);
+    const blocked = localStorage.getItem("attempted_zara") === "yes" || localStorage.getItem("fingerprint") === fingerprint;
 
-      if (data.length > 0) {
-        document.getElementById("blocked-message").style.display = "block";
-      } else {
-        document.getElementById("form-box").style.display = "block";
+    if (blocked) {
+      document.getElementById("blocked-message").style.display = "block";
+    } else {
+      document.getElementById("form-box").style.display = "block";
+    }
+
+    function startTest() {
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+
+      if (!name || !email) {
+        document.getElementById("form-error").innerText = "Please fill out both name and email.";
+        return;
       }
-    });
+      if (name.toLowerCase() !== "zara") {
+        document.getElementById("form-error").innerText = "Only ZARA is allowed.";
+        return;
+      }
+
+      userName = name;
+      userEmail = email;
+      document.getElementById("form-box").style.display = "none";
+      document.getElementById("test-box").style.display = "block";
+      document.getElementById("question-text").innerText = finalWords.join(" ").toUpperCase();
+      startTimer();
+    }
 
     function startTimer() {
       const timer = document.getElementById("timer");
@@ -119,40 +110,11 @@
       }, 1000);
     }
 
-    function slightChange(word) {
-      return word === targetWord ? replacementWord : word;
-    }
-
-    window.startTest = async function () {
-      const name = document.getElementById("name").value.trim();
-      const email = document.getElementById("email").value.trim();
-
-      if (!name || !email) {
-        document.getElementById("form-error").innerText = "Please fill out both name and email.";
-        return;
-      }
-
-      if (name.toLowerCase() !== "zara") {
-        document.getElementById("form-error").innerText = "Only ZARA is allowed.";
-        return;
-      }
-
-      userName = name;
-      userEmail = email;
-      shownWords = [...words];
-
-      document.getElementById("form-box").style.display = "none";
-      document.getElementById("test-box").style.display = "block";
-      document.getElementById("question-text").innerText = shownWords.join(" ").toUpperCase();
-      startTimer();
-    }
-
-    window.submitTest = async function () {
+    function submitTest() {
       clearInterval(timerInterval);
       document.getElementById("test-box").style.display = "none";
       document.getElementById("message-box").style.display = "block";
 
-      finalWords = shownWords.map(w => slightChange(w));
       const userWords = document.getElementById("answer").value.trim().toUpperCase().split(/\s+/);
       const table = document.getElementById("result-table");
       table.innerHTML = "";
@@ -160,26 +122,21 @@
       for (let i = 0; i < finalWords.length; i++) {
         const expected = finalWords[i].toUpperCase();
         const typed = userWords[i] || "";
-        const row = document.createElement("tr");
 
+        const row = document.createElement("tr");
         const td1 = document.createElement("td");
         td1.textContent = expected;
 
         const td2 = document.createElement("td");
-        td2.innerHTML = typed === expected
-          ? `<span class="right">${typed}</span>`
-          : `<span class="wrong">${typed}</span>`;
+        td2.innerHTML = typed === expected ? `<span class='right'>${typed}</span>` : `<span class='wrong'>${typed}</span>`;
 
         row.appendChild(td1);
         row.appendChild(td2);
         table.appendChild(row);
       }
 
-      const ip = await fetch("https://api.ipify.org?format=json").then(r => r.json()).then(d => d.ip);
-
-      await supabase.from("attempts").insert([
-        { name: userName, email: userEmail, ip: ip, fingerprint: fingerprint }
-      ]);
+      localStorage.setItem("attempted_zara", "yes");
+      localStorage.setItem("fingerprint", fingerprint);
     }
   </script>
 </body>
