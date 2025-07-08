@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Typing Test with Eye Monitoring</title>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    video { display: none; position: absolute; top: 10px; right: 10px; width: 300px; }
+    #question-box, #typing-box, #result-box { display: none; margin-top: 20px; }
+    textarea { width: 100%; height: 150px; }
+    #alertBox { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h2>Typing Test with Eye Monitoring</h2>
+
+<div id="permission-box">
+  <p>This test requires permission to monitor your eyes for fairness.</p>
+  <button onclick="startCamera()">✅ Allow Test</button>
+  <p id="permission-status" style="color:red;"></p>
+</div>
+
+<video id="video" autoplay muted></video>
+
+<div id="question-box">
+  <p><b>Type the following 20 words:</b></p>
+  <p id="question-text"></p>
+  <button onclick="startTypingTest()">Start Typing Test</button>
+</div>
+
+<div id="typing-box">
+  <p><b>Time Left:</b> <span id="timer">60:00</span></p>
+  <textarea id="answer"></textarea><br><br>
+  <button onclick="submitTest()">Submit Test</button>
+</div>
+
+<div id="alertBox"></div>
+
+<div id="result-box">
+  <h3>Test Submitted</h3>
+  <p><b>Original Words:</b></p>
+  <p id="originalWords"></p>
+  <p><b>Modified Words:</b></p>
+  <p id="modifiedWords"></p>
+</div>
+
+<script>
+  const words = [
+    "education", "banana", "computer", "internet", "keyboard",
+    "monitor", "science", "biology", "history", "language",
+    "software", "python", "javascript", "exam", "student",
+    "college", "teacher", "subject", "chapter", "lesson"
+  ];
+
+  let timerInterval;
+  let timeLeft = 60 * 60; // 60 minutes
+  let lookingAwayCount = 0;
+
+  const videoElement = document.getElementById('video');
+  const alertBox = document.getElementById('alertBox');
+
+  function startCamera() {
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        videoElement.srcObject = stream;
+        videoElement.style.display = 'block';
+        document.getElementById('permission-box').style.display = 'none';
+        document.getElementById('question-box').style.display = 'block';
+        setupFaceDetection(videoElement);
+      })
+      .catch(err => {
+        document.getElementById('permission-status').innerText = "Camera permission denied. You cannot take the test.";
+      });
+  }
+
+  function setupFaceDetection(video) {
+    const faceMesh = new FaceMesh.FaceMesh({
+      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
+
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    faceMesh.onResults(results => {
+      if (results.multiFaceLandmarks.length === 0) {
+        lookingAwayCount++;
+        if (lookingAwayCount % 50 === 0) {
+          alertBox.innerText = `⚠️ Warning: Please keep your eyes on the screen. (${lookingAwayCount} misses)`;
+        }
+      } else {
+        alertBox.innerText = '';
+      }
+    });
+
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await faceMesh.send({ image: video });
+      },
+      width: 640,
+      height: 480
+    });
+    camera.start();
+  }
+
+  function startTypingTest() {
+    document.getElementById('typing-box').style.display = 'block';
+    document.getElementById('question-box').style.display = 'none';
+    document.getElementById('question-text').innerText = words.join(" ");
+    startTimer();
+  }
+
+  function startTimer() {
+    const timer = document.getElementById("timer");
+    timerInterval = setInterval(() => {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      timer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      timeLeft--;
+      if (timeLeft < 0) {
+        clearInterval(timerInterval);
+        submitTest();
+      }
+    }, 1000);
+  }
+
+  function slightChange(word) {
+    if (word.length <= 3) return word;
+    const idx = Math.floor(Math.random() * word.length);
+    if (Math.random() > 0.5) {
+      return word.slice(0, idx) + word.slice(idx + 1); // remove
+    } else {
+      const letters = "abcdefghijklmnopqrstuvwxyz";
+      const newChar = letters[Math.floor(Math.random() * letters.length)];
+      return word.slice(0, idx) + newChar + word.slice(idx + 1); // replace
+    }
+  }
+
+  function submitTest() {
+    clearInterval(timerInterval);
+    document.getElementById('typing-box').style.display = 'none';
+    document.getElementById('result-box').style.display = 'block';
+
+    document.getElementById("originalWords").innerText = words.join(" ");
+    const modified = words.map(slightChange);
+    document.getElementById("modifiedWords").innerText = modified.join(" ");
+
+    alertBox.innerText = '';
+  }
+</script>
+
+</body>
+</html>
