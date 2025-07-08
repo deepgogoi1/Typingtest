@@ -2,20 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Typing Test with Name & Email</title>
+  <title>Typing Test</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; user-select: none; }
-    #form-box, #test-box, #result-box { margin-top: 20px; display: none; }
+    #form-box, #test-box, #message-box { margin-top: 20px; display: none; }
     textarea {
       width: 100%;
       height: 150px;
       font-size: 16px;
       resize: none;
     }
-    #form-box input {
-      margin: 5px 0;
+    input {
       width: 100%;
-      padding: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
       font-size: 16px;
     }
     #question-text {
@@ -27,7 +27,24 @@
       border: 1px solid #ccc;
       margin-bottom: 10px;
     }
-    #alertBox { color: red; font-weight: bold; }
+    #timer {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    #user-typed span.wrong {
+      color: red;
+      font-weight: bold;
+    }
+    #user-typed span.correct {
+      color: black;
+    }
+    #user-typed, #final-question {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background-color: #f1f1f1;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body oncontextmenu="return false" oncopy="return false" oncut="return false" onpaste="return false">
@@ -36,31 +53,25 @@
 
 <div id="form-box">
   <p><b>Before starting, please enter your details:</b></p>
-  <input type="text" id="name" placeholder="Enter your name"><br>
-  <input type="email" id="email" placeholder="Enter your email"><br>
+  <input type="text" id="name" placeholder="Enter your name">
+  <input type="email" id="email" placeholder="Enter your email">
   <button onclick="startTest()">Start Test</button>
   <p id="form-error" style="color:red;"></p>
 </div>
 
 <div id="test-box">
-  <p><b>Type the following 20 words:</b></p>
+  <p id="timer">Time Left: 01:00</p>
   <div id="question-text"></div>
-
-  <p><b>Time Left:</b> <span id="timer">01:00</span></p>
   <textarea id="answer" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea><br><br>
   <button onclick="submitTest()">Submit Test</button>
 </div>
 
-<div id="alertBox"></div>
-
-<div id="result-box">
-  <h3>Test Submitted</h3>
-  <p><b>Name:</b> <span id="submitted-name"></span></p>
-  <p><b>Email:</b> <span id="submitted-email"></span></p>
-  <p><b>Original Words:</b></p>
-  <p id="originalWords"></p>
-  <p><b>Modified Words:</b></p>
-  <p id="modifiedWords"></p>
+<div id="message-box">
+  <p><b>Try again next time.</b></p>
+  <p>Our job is always available for you.</p>
+  <p><b>What you typed vs correct answer:</b></p>
+  <div id="final-question"></div>
+  <div id="user-typed"></div>
 </div>
 
 <script>
@@ -73,7 +84,7 @@
 
   let userName = "";
   let userEmail = "";
-  let timeLeft = 60; // 60 seconds
+  let timeLeft = 60;
   let timerInterval;
 
   document.getElementById('form-box').style.display = 'block';
@@ -103,7 +114,7 @@
     timerInterval = setInterval(() => {
       const minutes = Math.floor(timeLeft / 60);
       const seconds = timeLeft % 60;
-      timer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      timer.textContent = `Time Left: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
       timeLeft--;
       if (timeLeft < 0) {
         clearInterval(timerInterval);
@@ -112,29 +123,28 @@
     }, 1000);
   }
 
-  function slightChange(word) {
-    if (word.length <= 3) return word;
-    const idx = Math.floor(Math.random() * word.length);
-    if (Math.random() > 0.5) {
-      return word.slice(0, idx) + word.slice(idx + 1); // remove one letter
-    } else {
-      const letters = "abcdefghijklmnopqrstuvwxyz";
-      const newChar = letters[Math.floor(Math.random() * letters.length)];
-      return word.slice(0, idx) + newChar + word.slice(idx + 1); // replace one letter
-    }
-  }
-
   function submitTest() {
     clearInterval(timerInterval);
+
     document.getElementById("test-box").style.display = "none";
-    document.getElementById("result-box").style.display = "block";
+    document.getElementById("message-box").style.display = "block";
 
-    document.getElementById("submitted-name").innerText = userName;
-    document.getElementById("submitted-email").innerText = userEmail;
+    const original = words.join(" ").toUpperCase().split(" ");
+    const userInput = document.getElementById("answer").value.trim().toUpperCase().split(/\s+/);
 
-    document.getElementById("originalWords").innerText = words.join(" ").toUpperCase();
-    const modified = words.map(slightChange);
-    document.getElementById("modifiedWords").innerText = modified.join(" ").toUpperCase();
+    const output = [];
+
+    for (let i = 0; i < original.length; i++) {
+      const userWord = userInput[i] || "";
+      if (userWord === original[i]) {
+        output.push(`<span class="correct">${userWord}</span>`);
+      } else {
+        output.push(`<span class="wrong">${userWord}</span>`);
+      }
+    }
+
+    document.getElementById("final-question").innerText = original.join(" ");
+    document.getElementById("user-typed").innerHTML = output.join(" ");
   }
 </script>
 
