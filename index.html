@@ -65,7 +65,7 @@
   <table>
     <thead>
       <tr>
-        <th>Correct Word</th>
+        <th>Question Word (now changed)</th>
         <th>Your Word</th>
       </tr>
     </thead>
@@ -84,7 +84,8 @@
   let userName = "", userEmail = "", timeLeft = 60, timerInterval;
   const ipKey = "typing-test-ip";
   const deviceKey = "typing-test-device";
-  let displayedWords = [];
+  let shownWords = []; // correct words shown at start
+  let finalWords = []; // modified words used for judging
 
   async function checkBlock() {
     const ip = await fetch("https://api.ipify.org?format=json").then(res => res.json()).then(data => data.ip);
@@ -115,8 +116,8 @@
     document.getElementById("form-box").style.display = "none";
     document.getElementById("test-box").style.display = "block";
 
-    displayedWords = words.map(w => slightChange(w));
-    document.getElementById("question-text").innerText = displayedWords.join(" ").toUpperCase();
+    shownWords = [...words]; // store correct original
+    document.getElementById("question-text").innerText = shownWords.join(" ").toUpperCase();
     startTimer();
   }
 
@@ -148,12 +149,15 @@
     document.getElementById("test-box").style.display = "none";
     document.getElementById("message-box").style.display = "block";
 
+    // Modify words *after* user typed them
+    finalWords = shownWords.map(slightChange);
+
     const userWords = document.getElementById("answer").value.trim().toUpperCase().split(/\s+/);
     const table = document.getElementById("result-table");
     table.innerHTML = "";
 
-    for (let i = 0; i < displayedWords.length; i++) {
-      const expected = displayedWords[i].toUpperCase();
+    for (let i = 0; i < finalWords.length; i++) {
+      const expected = finalWords[i].toUpperCase();
       const typed = userWords[i] || "";
       const row = document.createElement("tr");
 
@@ -177,5 +181,4 @@
 </script>
 
 </body>
-  </html>
-  
+</html>
