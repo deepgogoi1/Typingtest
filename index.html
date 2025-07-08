@@ -68,16 +68,17 @@
     </table>
   </div>
 
-  <!-- ✅ Supabase Integration -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <!-- ✅ Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/supabase.min.js"></script>
   <script>
     const { createClient } = supabase;
-
-    const SUPABASE_URL = 'https://rfinedanmwgceiotwsev.supabase.co';  // ✅ your project URL
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmaW5lZGFubXdnY2Vpb3R3c2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5ODQ0MzIsImV4cCI6MjA2NzU2MDQzMn0.RFzfItNk4KCYUhQx8U7-LVWcZDbEMNgxoCvtzVyVXWo';
+    const SUPABASE_URL = 'https://rfinedanmwgceiotwsev.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmaW5lZGFubXdnY2Vpb3R3c2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5ODQ0MzIsImV4cCI6MjA2NzU2MDQzMn0.RFzfItNk4KCYUhQx8U7-LVWcZDbEMNgxoCvtzVyVXWo'; // Replace with your actual anon key
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    const ipKey = "typing-test-ip";
     const fingerprint = btoa(navigator.userAgent + screen.width + screen.height + Intl.DateTimeFormat().resolvedOptions().timeZone);
+
     const targetWord = "language";
     const replacementWord = "langage";
     const words = [
@@ -104,6 +105,24 @@
       }
     });
 
+    function startTimer() {
+      const timer = document.getElementById("timer");
+      timerInterval = setInterval(() => {
+        const min = Math.floor(timeLeft / 60);
+        const sec = timeLeft % 60;
+        timer.textContent = `Time Left: ${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+        timeLeft--;
+        if (timeLeft < 0) {
+          clearInterval(timerInterval);
+          submitTest();
+        }
+      }, 1000);
+    }
+
+    function slightChange(word) {
+      return word === targetWord ? replacementWord : word;
+    }
+
     window.startTest = async function () {
       const name = document.getElementById("name").value.trim();
       const email = document.getElementById("email").value.trim();
@@ -125,26 +144,7 @@
       document.getElementById("form-box").style.display = "none";
       document.getElementById("test-box").style.display = "block";
       document.getElementById("question-text").innerText = shownWords.join(" ").toUpperCase();
-
       startTimer();
-    };
-
-    function startTimer() {
-      const timer = document.getElementById("timer");
-      timerInterval = setInterval(() => {
-        const min = Math.floor(timeLeft / 60);
-        const sec = timeLeft % 60;
-        timer.textContent = `Time Left: ${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-        timeLeft--;
-        if (timeLeft < 0) {
-          clearInterval(timerInterval);
-          submitTest();
-        }
-      }, 1000);
-    }
-
-    function slightChange(word) {
-      return word === targetWord ? replacementWord : word;
     }
 
     window.submitTest = async function () {
@@ -180,7 +180,7 @@
       await supabase.from("attempts").insert([
         { name: userName, email: userEmail, ip: ip, fingerprint: fingerprint }
       ]);
-    };
+    }
   </script>
 </body>
 </html>
